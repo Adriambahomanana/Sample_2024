@@ -118,10 +118,14 @@ function initViewer() {
     
     // Destroy existing viewer if it exists
     if (viewer) {
-        viewer.remove();
+        try {
+            viewer.remove();
+        } catch (e) {
+            console.log('Error removing viewer:', e);
+        }
     }
     
-    // Create fresh viewer - this gives us instant loading without transitions
+    // Create fresh viewer
     viewer = new mapillary.Viewer({
         container: 'mly',
         dataProvider: dataProvider,
@@ -139,15 +143,33 @@ function initViewer() {
         }
     });
     
-    // Set flat 2D view
+    // Immediately force position - try multiple times
+    const forcePosition = () => {
+        try {
+            viewer.setZoom(0);
+            viewer.setCenter([0.5, 0.7]);
+            viewer.setFieldOfView(90);
+        } catch (e) {}
+    };
+    
+    // Apply immediately
+    forcePosition();
+    
+    // Apply on next frame
+    requestAnimationFrame(forcePosition);
+    
+    // Apply after short delay
+    setTimeout(forcePosition, 10);
+    setTimeout(forcePosition, 50);
+    setTimeout(forcePosition, 100);
+    
     viewer.on('load', () => {
         console.log('Viewer loaded');
-        viewer.setZoom(0);
-        viewer.setCenter([0.5, 0.7]);
-        viewer.setFieldOfView(90);
+        forcePosition();
     });
     
     viewer.on('image', (image) => {
+        forcePosition();
         if (image && image.point_id) {
             const index = surveyData.findIndex(p => p.id === image.point_id);
             if (index !== -1) {
@@ -155,9 +177,7 @@ function initViewer() {
                 isShowingFront = image.id.includes('_front');
                 
                 if (isViewerMode) {
-                    viewer.setZoom(0);
-                    viewer.setCenter([0.5, 0.7]);
-                    viewer.setFieldOfView(90);
+                    forcePosition();
                     updateViewerInfo();
                     updateMinimap();
                     highlightMarker(currentPointIndex);
