@@ -29,7 +29,19 @@ function loadCSVData() {
             skipEmptyLines: true,
             complete: (results) => {
                 if (results.data && results.data.length > 0) {
-                    surveyData = results.data.sort((a, b) => a.id.localeCompare(b.id));
+                    // Filter out any rows with missing required fields
+                    const validData = results.data.filter(row => 
+                        row && row.id && row.lat && row.long && row.heading_front
+                    );
+                    
+                    if (validData.length === 0) {
+                        reject(new Error('No valid data in CSV'));
+                        return;
+                    }
+                    
+                    surveyData = validData.sort((a, b) => 
+                        String(a.id).localeCompare(String(b.id))
+                    );
                     console.log(`Loaded ${surveyData.length} survey points`);
                     resolve();
                 } else {
