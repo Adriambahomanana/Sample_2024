@@ -119,26 +119,47 @@ function initViewer() {
         dataProvider: dataProvider,
         imageTiling: false,
         imageId: firstImageId,
-        transitionMode: 'instantaneous', // Remove transitions
+        transitionMode: 'instantaneous',
+        renderMode: 'letterbox', // Force flat 2D rendering
         component: {
             cover: false,
             sequence: false,
             direction: false,
-            zoom: true,
-            bearing: false
+            zoom: false, // Disable zoom to prevent camera adjustments
+            bearing: false,
+            cache: false
         }
     });
     
     // Function to set and maintain flat 2D view
-    const setFlatView = () => {
-        viewer.setZoom(0);
-        viewer.setCenter([0.5, 0.7]); // Horizontal center, show more bottom
-        viewer.setFieldOfView(90); // Flat view, no perspective distortion
+    const targetZoom = 0;
+    const targetCenter = [0.5, 0.7];
+    const targetFOV = 90;
+    
+    const enforcePosition = () => {
+        try {
+            viewer.setZoom(targetZoom);
+            viewer.setCenter(targetCenter);
+            viewer.setFieldOfView(targetFOV);
+        } catch (e) {
+            // Ignore errors during transitions
+        }
+    };
+    
+    // Continuously enforce position during any viewer activity
+    let enforcementInterval;
+    const startEnforcement = () => {
+        if (enforcementInterval) clearInterval(enforcementInterval);
+        enforcementInterval = setInterval(enforcePosition, 16); // ~60fps
+        setTimeout(() => {
+            clearInterval(enforcementInterval);
+        }, 500); // Stop after 500ms
     };
     
     viewer.on('load', () => {
         console.log('Viewer loaded');
-        setFlatView();
+        enforcePosition();
+        startEnforcement();
     });
     
     viewer.on('image', (image) => {
@@ -150,7 +171,8 @@ function initViewer() {
                 
                 if (isViewerMode) {
                     // Force flat view on every image change
-                    setTimeout(setFlatView, 50);
+                    enforcePosition();
+                    startEnforcement();
                     updateViewerInfo();
                     updateMinimap();
                     highlightMarker(currentPointIndex);
@@ -177,10 +199,6 @@ function enterViewerMode() {
         const view = isShowingFront ? 'front' : 'rear';
         const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
         viewer.moveTo(imageId);
-        // Apply immediately, don't wait for promise
-        viewer.setZoom(0);
-        viewer.setCenter([0.5, 0.7]);
-        viewer.setFieldOfView(90);
         updateViewerInfo();
         updateMinimap();
         highlightMarker(currentPointIndex);
@@ -251,10 +269,6 @@ function setupControls() {
             const view = isShowingFront ? 'front' : 'rear';
             const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
             viewer.moveTo(imageId);
-            // Apply immediately, don't wait for promise
-            viewer.setZoom(0);
-            viewer.setCenter([0.5, 0.7]);
-            viewer.setFieldOfView(90);
             updateViewerInfo();
             updateMinimap();
             highlightMarker(currentPointIndex);
@@ -268,10 +282,6 @@ function setupControls() {
             const view = isShowingFront ? 'front' : 'rear';
             const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
             viewer.moveTo(imageId);
-            // Apply immediately, don't wait for promise
-            viewer.setZoom(0);
-            viewer.setCenter([0.5, 0.7]);
-            viewer.setFieldOfView(90);
             updateViewerInfo();
             updateMinimap();
             highlightMarker(currentPointIndex);
@@ -284,10 +294,6 @@ function setupControls() {
         const view = isShowingFront ? 'front' : 'rear';
         const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
         viewer.moveTo(imageId);
-        // Apply immediately, don't wait for promise
-        viewer.setZoom(0);
-        viewer.setCenter([0.5, 0.7]);
-        viewer.setFieldOfView(90);
         updateViewerInfo();
     });
 }
