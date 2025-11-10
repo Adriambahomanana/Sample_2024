@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test</title>
+</head>
+<body>
+    <h1>Testing...</h1>
+    <div id="result"></div>
+    
+    <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://unpkg.com/mapillary-js@4.1.2/dist/mapillary.js"></script>
+    
+    <script>
+        document.getElementById('result').innerHTML = 
+            'Papa loaded: ' + (typeof Papa !== 'undefined') + '<br>' +
+            'Mapillary loaded: ' + (typeof mapillary !== 'undefined');
+    </script>
+</body>
+</html>

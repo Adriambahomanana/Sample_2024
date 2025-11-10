@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road Survey Viewer</title>
+    <link href="https://unpkg.com/mapillary-js@4.1.2/dist/mapillary.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; height: 100vh; overflow: hidden; }
+        #app-container { width: 100%; height: 100%; position: relative; }
+        
+        #title-plate { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            height: 60px; 
+            background: white; 
+            z-index: 2000; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            padding: 0 20px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3); 
+        }
+        #title-text { 
+            color: #e67e22; 
+            font-size: 18px; 
+            font-weight: bold; 
+        }
+        #title-info { 
+            color: #e67e22; 
+            font-size: 14px; 
+            font-weight: 600;
+        }
+        
+        #map-container { 
+            width: 100%; 
+            height: 100%; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1; 
+            padding-top: 60px; 
+        }
+        #map { width: 100%; height: 100%; }
+        
+        .map-controls { 
+            position: absolute; 
+            top: 80px; 
+            right: 20px; 
+            z-index: 1000; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+        }
+        .map-btn { 
+            width: 44px; 
+            height: 44px; 
+            background: white; 
+            border: 2px solid #ccc; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 20px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); 
+        }
+        .map-btn:hover { background: #f0f0f0; }
+        
+        #viewer-container { 
+            width: 100%; 
+            height: 100%; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 2; 
+            display: none; 
+            background: #000;  
+        }
+        #viewer-container.active { display: block; }
+        
+        #mly { width: 100%; height: 100%; }
+        
+        .mapillary-js .mly-btn-zoom, 
+        .mapillary-js .mly-btn-fullscreen { 
+            display: none !important; 
+        }
+        
+        /* Back to Map button - NOW INSIDE viewer container */
+        #close-viewer-btn { 
+            position: absolute; 
+            top: 70px; 
+            left: 20px; 
+            z-index: 10; 
+            background: #c0392b; 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+        #close-viewer-btn:hover { background: #a93226; }
+        
+        #viewer-controls { 
+            position: absolute; 
+            bottom: 20px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            z-index: 3; 
+            display: flex; 
+            gap: 15px; 
+            background: rgba(0,0,0,0.85); 
+            padding: 15px 25px; 
+            border-radius: 8px; 
+        }
+        .viewer-btn { 
+            background: #3498db; 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 14px;
+        }
+        .viewer-btn:hover:not(:disabled) { background: #2980b9; }
+        .viewer-btn:disabled { 
+            background: #7f8c8d; 
+            cursor: not-allowed; 
+            opacity: 0.6; 
+        }
+        #switch-view-btn { background: #e67e22; }
+        #switch-view-btn:hover { background: #d35400; }
+        
+        #minimap-container { 
+            position: absolute; 
+            bottom: 80px; 
+            left: 20px; 
+            width: 280px; 
+            height: 220px; 
+            z-index: 3; 
+            border: 3px solid white; 
+            border-radius: 8px; 
+            overflow: hidden; 
+            cursor: pointer; 
+            background: white; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6); 
+        }
+        #minimap { width: 100%; height: 100%; }
+        
+        #loading { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+            background: rgba(0,0,0,0.95); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            color: white; 
+            z-index: 10000; 
+        }
+        #loading.hidden { display: none; }
+        .spinner { 
+            width: 50px; 
+            height: 50px; 
+            border: 5px solid #05CB63; 
+            border-top-color: transparent; 
+            border-radius: 50%; 
+            animation: spin 1s linear infinite; 
+            margin-bottom: 20px; 
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div>Loading survey data...</div>
+    </div>
+    
+    <div id="app-container">
+        <div id="title-plate">
+            <div id="title-text">Two-cam imagery sample. Krakow, Q4 2024</div>
+            <div id="title-info"></div>
+        </div>
+        
+        <div id="map-container">
+            <div id="map"></div>
+            <div class="map-controls">
+                <button class="map-btn" id="zoom-in">+</button>
+                <button class="map-btn" id="zoom-out">−</button>
+            </div>
+        </div>
+        
+        <div id="viewer-container">
+            <button id="close-viewer-btn">✕ Back to Map</button>
+            <div id="mly"></div>
+            <div id="minimap-container">
+                <div id="minimap"></div>
+            </div>
+            <div id="viewer-controls">
+                <button class="viewer-btn" id="prev-point-btn">← Prev</button>
+                <button class="viewer-btn" id="switch-view-btn">↕ Front/Rear</button>
+                <button class="viewer-btn" id="next-point-btn">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/mapillary-js@4.1.2/dist/mapillary.js"></script>
+    <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="data-provider.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
