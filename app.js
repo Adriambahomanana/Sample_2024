@@ -176,12 +176,11 @@ function enterViewerMode() {
     } else {
         const view = isShowingFront ? 'front' : 'rear';
         const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
-        viewer.moveTo(imageId).then(() => {
-            // Force flat view after image loads
-            viewer.setZoom(0);
-            viewer.setCenter([0.5, 0.7]);
-            viewer.setFieldOfView(90);
-        });
+        viewer.moveTo(imageId);
+        // Apply immediately, don't wait for promise
+        viewer.setZoom(0);
+        viewer.setCenter([0.5, 0.7]);
+        viewer.setFieldOfView(90);
         updateViewerInfo();
         updateMinimap();
         highlightMarker(currentPointIndex);
@@ -251,11 +250,11 @@ function setupControls() {
             currentPointIndex--;
             const view = isShowingFront ? 'front' : 'rear';
             const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
-            viewer.moveTo(imageId).then(() => {
-                viewer.setZoom(0);
-                viewer.setCenter([0.5, 0.7]);
-                viewer.setFieldOfView(90);
-            });
+            viewer.moveTo(imageId);
+            // Apply immediately, don't wait for promise
+            viewer.setZoom(0);
+            viewer.setCenter([0.5, 0.7]);
+            viewer.setFieldOfView(90);
             updateViewerInfo();
             updateMinimap();
             highlightMarker(currentPointIndex);
@@ -268,11 +267,11 @@ function setupControls() {
             currentPointIndex++;
             const view = isShowingFront ? 'front' : 'rear';
             const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
-            viewer.moveTo(imageId).then(() => {
-                viewer.setZoom(0);
-                viewer.setCenter([0.5, 0.7]);
-                viewer.setFieldOfView(90);
-            });
+            viewer.moveTo(imageId);
+            // Apply immediately, don't wait for promise
+            viewer.setZoom(0);
+            viewer.setCenter([0.5, 0.7]);
+            viewer.setFieldOfView(90);
             updateViewerInfo();
             updateMinimap();
             highlightMarker(currentPointIndex);
@@ -284,11 +283,11 @@ function setupControls() {
         isShowingFront = !isShowingFront;
         const view = isShowingFront ? 'front' : 'rear';
         const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
-        viewer.moveTo(imageId).then(() => {
-            viewer.setZoom(0);
-            viewer.setCenter([0.5, 0.7]);
-            viewer.setFieldOfView(90);
-        });
+        viewer.moveTo(imageId);
+        // Apply immediately, don't wait for promise
+        viewer.setZoom(0);
+        viewer.setCenter([0.5, 0.7]);
+        viewer.setFieldOfView(90);
         updateViewerInfo();
     });
 }
