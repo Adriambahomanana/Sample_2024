@@ -107,59 +107,44 @@ function initMinimap() {
 }
 
 function initViewer() {
-    if (viewerInitialized) return;
+    if (!dataProvider) {
+        dataProvider = new CustomDataProvider(surveyData);
+    }
     
-    dataProvider = new CustomDataProvider(surveyData);
-    const firstImageId = `point${surveyData[currentPointIndex].id}_front`;
+    const view = isShowingFront ? 'front' : 'rear';
+    const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
     
-    console.log('Initializing viewer with:', firstImageId);
+    console.log('Initializing viewer with:', imageId);
     
+    // Destroy existing viewer if it exists
+    if (viewer) {
+        viewer.remove();
+    }
+    
+    // Create fresh viewer - this gives us instant loading without transitions
     viewer = new mapillary.Viewer({
         container: 'mly',
         dataProvider: dataProvider,
         imageTiling: false,
-        imageId: firstImageId,
+        imageId: imageId,
         transitionMode: 'instantaneous',
-        renderMode: 'letterbox', // Force flat 2D rendering
+        renderMode: 'letterbox',
         component: {
             cover: false,
             sequence: false,
             direction: false,
-            zoom: false, // Disable zoom to prevent camera adjustments
+            zoom: false,
             bearing: false,
             cache: false
         }
     });
     
-    // Function to set and maintain flat 2D view
-    const targetZoom = 0;
-    const targetCenter = [0.5, 0.7];
-    const targetFOV = 90;
-    
-    const enforcePosition = () => {
-        try {
-            viewer.setZoom(targetZoom);
-            viewer.setCenter(targetCenter);
-            viewer.setFieldOfView(targetFOV);
-        } catch (e) {
-            // Ignore errors during transitions
-        }
-    };
-    
-    // Continuously enforce position during any viewer activity
-    let enforcementInterval;
-    const startEnforcement = () => {
-        if (enforcementInterval) clearInterval(enforcementInterval);
-        enforcementInterval = setInterval(enforcePosition, 16); // ~60fps
-        setTimeout(() => {
-            clearInterval(enforcementInterval);
-        }, 500); // Stop after 500ms
-    };
-    
+    // Set flat 2D view
     viewer.on('load', () => {
         console.log('Viewer loaded');
-        enforcePosition();
-        startEnforcement();
+        viewer.setZoom(0);
+        viewer.setCenter([0.5, 0.7]);
+        viewer.setFieldOfView(90);
     });
     
     viewer.on('image', (image) => {
@@ -170,9 +155,9 @@ function initViewer() {
                 isShowingFront = image.id.includes('_front');
                 
                 if (isViewerMode) {
-                    // Force flat view on every image change
-                    enforcePosition();
-                    startEnforcement();
+                    viewer.setZoom(0);
+                    viewer.setCenter([0.5, 0.7]);
+                    viewer.setFieldOfView(90);
                     updateViewerInfo();
                     updateMinimap();
                     highlightMarker(currentPointIndex);
@@ -188,21 +173,13 @@ function enterViewerMode() {
     isViewerMode = true;
     document.getElementById('viewer-container').classList.add('active');
     
-    if (!viewerInitialized) {
-        setTimeout(() => {
-            initViewer();
-            updateViewerInfo();
-            updateMinimap();
-            highlightMarker(currentPointIndex);
-        }, 100);
-    } else {
-        const view = isShowingFront ? 'front' : 'rear';
-        const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
-        viewer.moveTo(imageId);
+    // Always recreate viewer for instant, no-transition loading
+    setTimeout(() => {
+        initViewer();
         updateViewerInfo();
         updateMinimap();
         highlightMarker(currentPointIndex);
-    }
+    }, 100);
 }
 
 function exitViewerMode() {
@@ -262,38 +239,32 @@ function setupControls() {
     document.getElementById('zoom-out').addEventListener('click', () => map.zoomOut());
     document.getElementById('close-viewer-btn').addEventListener('click', exitViewerMode);
     
-    // Prev button - stays in current view (front or rear)
+    // Prev button - recreate viewer for instant switching
     document.getElementById('prev-point-btn').addEventListener('click', () => {
         if (currentPointIndex > 0) {
             currentPointIndex--;
-            const view = isShowingFront ? 'front' : 'rear';
-            const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
-            viewer.moveTo(imageId);
+            initViewer(); // Recreate viewer = instant switch
             updateViewerInfo();
             updateMinimap();
             highlightMarker(currentPointIndex);
         }
     });
     
-    // Next button - stays in current view (front or rear)
+    // Next button - recreate viewer for instant switching
     document.getElementById('next-point-btn').addEventListener('click', () => {
         if (currentPointIndex < surveyData.length - 1) {
             currentPointIndex++;
-            const view = isShowingFront ? 'front' : 'rear';
-            const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
-            viewer.moveTo(imageId);
+            initViewer(); // Recreate viewer = instant switch
             updateViewerInfo();
             updateMinimap();
             highlightMarker(currentPointIndex);
         }
     });
     
-    // Switch view button
+    // Switch view button - recreate viewer for instant switching
     document.getElementById('switch-view-btn').addEventListener('click', () => {
         isShowingFront = !isShowingFront;
-        const view = isShowingFront ? 'front' : 'rear';
-        const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
-        viewer.moveTo(imageId);
+        initViewer(); // Recreate viewer = instant switch
         updateViewerInfo();
     });
 }
