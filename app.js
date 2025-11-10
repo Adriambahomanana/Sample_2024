@@ -119,6 +119,7 @@ function initViewer() {
         dataProvider: dataProvider,
         imageTiling: false,
         imageId: firstImageId,
+        transitionMode: 'instantaneous', // Remove transitions
         component: {
             cover: false,
             sequence: false,
@@ -128,11 +129,16 @@ function initViewer() {
         }
     });
     
+    // Function to set and maintain flat 2D view
+    const setFlatView = () => {
+        viewer.setZoom(0);
+        viewer.setCenter([0.5, 0.7]); // Horizontal center, show more bottom
+        viewer.setFieldOfView(90); // Flat view, no perspective distortion
+    };
+    
     viewer.on('load', () => {
         console.log('Viewer loaded');
-        // Fit image and show bottom more
-        viewer.setZoom(0);
-        viewer.setCenter([0.5, 0.95]); // Horizontal center, vertical lower (0=top, 1=bottom)
+        setFlatView();
     });
     
     viewer.on('image', (image) => {
@@ -143,8 +149,8 @@ function initViewer() {
                 isShowingFront = image.id.includes('_front');
                 
                 if (isViewerMode) {
-                    viewer.setZoom(0);
-                    viewer.setCenter([0.5, 0.95]);
+                    // Force flat view on every image change
+                    setTimeout(setFlatView, 50);
                     updateViewerInfo();
                     updateMinimap();
                     highlightMarker(currentPointIndex);
@@ -170,7 +176,12 @@ function enterViewerMode() {
     } else {
         const view = isShowingFront ? 'front' : 'rear';
         const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
-        viewer.moveTo(imageId);
+        viewer.moveTo(imageId).then(() => {
+            // Force flat view after image loads
+            viewer.setZoom(0);
+            viewer.setCenter([0.5, 0.7]);
+            viewer.setFieldOfView(90);
+        });
         updateViewerInfo();
         updateMinimap();
         highlightMarker(currentPointIndex);
@@ -240,7 +251,11 @@ function setupControls() {
             currentPointIndex--;
             const view = isShowingFront ? 'front' : 'rear';
             const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
-            viewer.moveTo(imageId);
+            viewer.moveTo(imageId).then(() => {
+                viewer.setZoom(0);
+                viewer.setCenter([0.5, 0.7]);
+                viewer.setFieldOfView(90);
+            });
             updateViewerInfo();
             updateMinimap();
             highlightMarker(currentPointIndex);
@@ -253,7 +268,11 @@ function setupControls() {
             currentPointIndex++;
             const view = isShowingFront ? 'front' : 'rear';
             const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
-            viewer.moveTo(imageId);
+            viewer.moveTo(imageId).then(() => {
+                viewer.setZoom(0);
+                viewer.setCenter([0.5, 0.7]);
+                viewer.setFieldOfView(90);
+            });
             updateViewerInfo();
             updateMinimap();
             highlightMarker(currentPointIndex);
@@ -265,7 +284,11 @@ function setupControls() {
         isShowingFront = !isShowingFront;
         const view = isShowingFront ? 'front' : 'rear';
         const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
-        viewer.moveTo(imageId);
+        viewer.moveTo(imageId).then(() => {
+            viewer.setZoom(0);
+            viewer.setCenter([0.5, 0.7]);
+            viewer.setFieldOfView(90);
+        });
         updateViewerInfo();
     });
 }
