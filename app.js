@@ -1,11 +1,10 @@
 // Application state
-let map, minimap, viewer, dataProvider;
+let map, minimap;
 let surveyData = [];
 let currentPointIndex = 0;
 let isShowingFront = true;
 let markers = [];
 let isViewerMode = false;
-let viewerInitialized = false;
 
 async function init() {
     try {
@@ -31,7 +30,7 @@ function loadCSVData() {
                 if (results.data && results.data.length > 0) {
                     // Filter out any rows with missing required fields
                     const validData = results.data.filter(row => 
-                        row && row.id && row.lat && row.long && row.heading_front
+                        row && row.id && row.lat && row.long && row.heading_front && row.front && row.rear
                     );
                     
                     if (validData.length === 0) {
@@ -106,100 +105,15 @@ function initMinimap() {
     document.getElementById('minimap-container').addEventListener('click', exitViewerMode);
 }
 
-function initViewer() {
-    if (!dataProvider) {
-        dataProvider = new CustomDataProvider(surveyData);
-    }
-    
-    const view = isShowingFront ? 'front' : 'rear';
-    const imageId = `point${surveyData[currentPointIndex].id}_${view}`;
-    
-    console.log('Initializing viewer with:', imageId);
-    
-    // Destroy existing viewer if it exists
-    if (viewer) {
-        try {
-            viewer.remove();
-        } catch (e) {
-            console.log('Error removing viewer:', e);
-        }
-    }
-    
-    // Create fresh viewer
-    viewer = new mapillary.Viewer({
-        container: 'mly',
-        dataProvider: dataProvider,
-        imageTiling: false,
-        imageId: imageId,
-        transitionMode: 'instantaneous',
-        renderMode: 'letterbox',
-        component: {
-            cover: false,
-            sequence: false,
-            direction: false,
-            zoom: false,
-            bearing: false,
-            cache: false
-        }
-    });
-    
-    // Immediately force position - try multiple times
-    const forcePosition = () => {
-        try {
-            viewer.setZoom(0);
-            viewer.setCenter([0.5, 0.7]);
-            viewer.setFieldOfView(90);
-        } catch (e) {}
-    };
-    
-    // Apply immediately
-    forcePosition();
-    
-    // Apply on next frame
-    requestAnimationFrame(forcePosition);
-    
-    // Apply after short delay
-    setTimeout(forcePosition, 10);
-    setTimeout(forcePosition, 50);
-    setTimeout(forcePosition, 100);
-    
-    viewer.on('load', () => {
-        console.log('Viewer loaded');
-        forcePosition();
-    });
-    
-    viewer.on('image', (image) => {
-        forcePosition();
-        if (image && image.point_id) {
-            const index = surveyData.findIndex(p => p.id === image.point_id);
-            if (index !== -1) {
-                currentPointIndex = index;
-                isShowingFront = image.id.includes('_front');
-                
-                if (isViewerMode) {
-                    forcePosition();
-                    updateViewerInfo();
-                    updateMinimap();
-                    highlightMarker(currentPointIndex);
-                }
-            }
-        }
-    });
-    
-    viewerInitialized = true;
-}
-
 function enterViewerMode() {
     isViewerMode = true;
     document.getElementById('viewer-container').classList.add('active');
     
-    // Always recreate viewer for instant, no-transition loading
-    setTimeout(() => {
-        initViewer();
-        updateViewerInfo();
-        updateMinimap();
-        highlightMarker(currentPointIndex);
-    }, 100);
+    // Load and display the image instantly
+    updateImage();
+    updateViewerInfo();
+    updateMinimap();
+    highlightMarker(currentPointIndex);
 }
 
 function exitViewerMode() {
@@ -209,6 +123,15 @@ function exitViewerMode() {
     const point = surveyData[currentPointIndex];
     map.setView([point.lat, point.long], map.getZoom());
     highlightMarker(currentPointIndex);
+}
+
+function updateImage() {
+    const point = surveyData[currentPointIndex];
+    const imageFile = isShowingFront ? point.front : point.rear;
+    const imageElement = document.getElementById('survey-image');
+    
+    // Set image source - instant switch, no transitions!
+    imageElement.src = `./images/${imageFile}`;
 }
 
 function updateViewerInfo() {
@@ -259,32 +182,32 @@ function setupControls() {
     document.getElementById('zoom-out').addEventListener('click', () => map.zoomOut());
     document.getElementById('close-viewer-btn').addEventListener('click', exitViewerMode);
     
-    // Prev button - recreate viewer for instant switching
+    // Prev button - instant image switch
     document.getElementById('prev-point-btn').addEventListener('click', () => {
         if (currentPointIndex > 0) {
             currentPointIndex--;
-            initViewer(); // Recreate viewer = instant switch
+            updateImage();
             updateViewerInfo();
             updateMinimap();
             highlightMarker(currentPointIndex);
         }
     });
     
-    // Next button - recreate viewer for instant switching
+    // Next button - instant image switch
     document.getElementById('next-point-btn').addEventListener('click', () => {
         if (currentPointIndex < surveyData.length - 1) {
             currentPointIndex++;
-            initViewer(); // Recreate viewer = instant switch
+            updateImage();
             updateViewerInfo();
             updateMinimap();
             highlightMarker(currentPointIndex);
         }
     });
     
-    // Switch view button - recreate viewer for instant switching
+    // Switch view button - instant front/rear toggle
     document.getElementById('switch-view-btn').addEventListener('click', () => {
         isShowingFront = !isShowingFront;
-        initViewer(); // Recreate viewer = instant switch
+        updateImage();
         updateViewerInfo();
     });
 }
