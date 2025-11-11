@@ -94,12 +94,12 @@
         
         #survey-image {
             display: block;
-            max-width: 100%;
-            max-height: 100%;
-            height: auto;
-            width: auto;
-            object-fit: contain;
-            object-position: center bottom;
+            width: 100%;  /* Fill full width (left to right edges) */
+            height: auto;  /* Maintain aspect ratio */
+            max-width: none;  /* Remove width constraint */
+            max-height: none;  /* Remove height constraint, let top overflow */
+            object-fit: cover;  /* Cover the width, crop top if needed */
+            object-position: center bottom;  /* Align to bottom, center horizontally */
         }
         
         /* Back to Map button */
